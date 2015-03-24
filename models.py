@@ -82,11 +82,16 @@ class Link(ndb.Model):
         return url
 
     @classmethod
-    def get_highest_index(cls):
+    def get_next_index(cls):
         try:
-            return int(cls.query().order(-cls.sequence_index).get().sequence_index)
+            highest = cls.query().order(-cls.sequence_index).get()
+            logger.debug('get_next_index highest: %s', highest)
+            index = highest.sequence_index
+            logger.debug('get_next_index index: %s', index +1)
+            return index +1
         except Exception as e:
             logger.error(e)
+            logger.debug('get_next_index no index')
             return 1
 
     @classmethod
@@ -98,9 +103,9 @@ class Link(ndb.Model):
             path)
         if not path:
             logger.debug('create_key no vanity path-> generating unique_path')
-            count = cls.get_highest_index()
-            logger.debug('create_key entity count: %s', count)
-            path = short_url.encode_url(count)
+            next_index = cls.get_next_index()
+            logger.debug('create_key entity count: %s', next_index)
+            path = short_url.encode_url(next_index)
             logger.debug('create_key encoded entity count: %s', path)
         logger.debug('create_key path:%s', path)
         url = urlparse.urlunsplit([scheme, netloc, path, '', ''])
@@ -137,7 +142,7 @@ class Link(ndb.Model):
         logger.debug('create link: %s', link)
         key = link.put()
         if key:
-            memcache.set(key=link.key.id(), value=link.target_url)
+            memcache.set(key=str(link.key.id()), value=str(link.target_url))
             logger.debug(
                 'Added to memcache: %s=%s',
                 link.key.id(),
@@ -148,7 +153,7 @@ class Link(ndb.Model):
 
     @property
     def path(self):
-        path = urlparse.urlsplit(self.key.id())[3]
+        path = urlparse.urlsplit(self.key.id())[2][1:]
         logger.debug('path: %s', path)
         return path
 
