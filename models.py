@@ -24,7 +24,7 @@ import short_url
 
 DEFAULT_SCHEME = 'http'
 
-DEFAULT_NETLOC = '4RT.mp'
+DEFAULT_NETLOC = app_identity.get_default_version_hostname() # '4RT.mp'
 if app_identity.get_default_version_hostname().startswith('localhost'):
     DEFAULT_NETLOC = app_identity.get_default_version_hostname()
 
@@ -179,9 +179,9 @@ class Link(ndb.Model):
 
     @property
     def url(self):
-        return self.key.id()
+        return str(self.key.id())
 
     @property
     def json(self):
         return "{\"link\":\"%s\",\"target_url\":\"%s\"}\n" % (
-            self.key.id(), self.target_url)
+            self.url, self.target_url)
