@@ -43,10 +43,10 @@ class Link(ndb.Model):
         v: users.get_current_user())
     vanity_path = ndb.BooleanProperty(default=False)
 
-    artmap_user_id = ndb.TextProperty()
-    mixpanel_distinct_id = ndb.TextProperty()
-    mailchimp_user_id = ndb.TextProperty()
-    google_analytics_client_id = ndb.TextProperty()
+    artmap_userid = ndb.TextProperty()
+    mixpanel_distinctid = ndb.TextProperty()
+    mailchimp_userid = ndb.TextProperty()
+    google_clientid = ndb.TextProperty()
 
     utm_campaign = ndb.TextProperty()
     utm_source = ndb.TextProperty()
@@ -123,7 +123,9 @@ class Link(ndb.Model):
     def create(cls, target_url=None, scheme=DEFAULT_SCHEME,
                netloc=DEFAULT_NETLOC, path=None,
                utm_campaign=None, utm_source=None, utm_medium=None,
-               utm_content=None):
+               utm_content=None, artmap_userid=None,
+               mailchimp_userid=None, mixpanel_distinctid=None,
+               google_clientid=None):
 
         if any([utm_campaign, utm_source, utm_medium, utm_content]):
             target_url = cls.update_query_string(target_url,
@@ -138,7 +140,11 @@ class Link(ndb.Model):
         logger.debug('create key: %s', key)
         link = cls(key=key, target_url=target_url, utm_campaign=utm_campaign,
                    utm_source=utm_source, utm_medium=utm_medium,
-                   utm_content=utm_content, vanity_path=vanity_path)
+                   utm_content=utm_content, vanity_path=vanity_path,
+                   artmap_userid=artmap_userid,
+                   mailchimp_userid=mailchimp_userid,
+                   mixpanel_distinctid=mixpanel_distinctid,
+                   google_clientid=google_clientid)
         logger.debug('create link: %s', link)
         key = link.put()
         if key:
