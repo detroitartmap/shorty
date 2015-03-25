@@ -13,6 +13,8 @@ from google.appengine.ext.webapp import RedirectHandler
 
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.api import memcache
+from google.appengine.api import app_identity
+from google.appengine.api import users
 from google.appengine.ext import deferred
 from google.appengine.api import logservice
 from models import Link
@@ -40,6 +42,7 @@ def log(request_log_id, memcache_hit, link, target_url, cookies):
         ga['plt'] = rlog.latency  # page load time
         ga['rrt'] = rlog.latency  # redirect response time
         logger.debug('log ga:%s', ga)
+
 
 CLEARDOT = 'GIF89a\x01\x00\x01\x00\x80\xff\x00\xc0\xc0\xc0\x00\x00\x00!\xf9\x04\x01\x00\x00\x00\x00,\x00\x00\x00\x00\x01\x00\x01\x00\x00\x02\x02D\x01\x00;'
 
@@ -69,8 +72,9 @@ class Cookie(webapp.RequestHandler):
 class Create(webapp.RequestHandler):
 
     def post(self):
-        #        if not users.is_current_user_admin():
-        #            self.abort(405)
+        local = app_identity.get_default_version_hostname().startswith('localhost')
+        if not local and not users.is_current_user_admin():
+            self.abort(405)
         fields = ('target_url', 'path', 'utm_campaign', 'utm_source',
                   'utm_medium', 'utm_content', 'artmap_userid',
                   'mailchimp_userid', 'mixpanel_distinctid', 'google_clientid')
@@ -83,8 +87,6 @@ class Create(webapp.RequestHandler):
 
 def redirector(handler, *args, **kwargs):
     link = handler.request.path_url
-    cookie_fields = ('gid','mid','aid')
-
     logger.debug('redirector link:%s', link)
     url = memcache.get(link)
     if url:
@@ -96,7 +98,8 @@ def redirector(handler, *args, **kwargs):
             'redirector memcache_miss link:%s target_url:%s', link, url)
         url = str(Link.get_by_id(link).target_url)
         memcache_hit = False
-    deferred.defer(log, os.environ['REQUEST_LOG_ID'], memcache_hit, link, url, handler.request.cookies)
+    deferred.defer(log, os.environ['REQUEST_LOG_ID'], memcache_hit, link, url,
+                   handler.request.cookies)
     return url
 
 
